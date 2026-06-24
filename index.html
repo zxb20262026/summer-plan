@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏖️ 暑假打卡 · 五年级</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  background: #f0f4ff;
+  min-height: 100vh;
+  padding-bottom: 100px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* 顶部积分栏 */
+.score-bar {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 20px 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+}
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.score-header .title { font-size: 1.1em; opacity: 0.9; }
+.score-header .date { font-size: 0.9em; opacity: 0.8; }
+.score-row {
+  display: flex;
+  gap: 12px;
+}
+.score-card {
+  flex: 1;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 14px 12px;
+  text-align: center;
+}
+.score-card .val {
+  font-size: 2em;
+  font-weight: 800;
+  line-height: 1;
+}
+.score-card .label {
+  font-size: 0.8em;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+.score-card.total {
+  background: rgba(255,255,255,0.25);
+}
+.score-card.total .val { color: #ffeaa7; }
+
+/* 周选择器 */
+.week-nav {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+.week-nav::-webkit-scrollbar { display: none; }
+.day-chip {
+  flex-shrink: 0;
+  min-width: 44px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 0.75em;
+  cursor: pointer;
+  background: #f0f4ff;
+  color: #666;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+.day-chip .dow { font-size: 0.85em; font-weight: 600; }
+.day-chip .dnum { font-size: 1.2em; font-weight: 700; margin-top: 2px; }
+.day-chip.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+.day-chip.today {
+  border-color: #667eea;
+  background: #e8ecff;
+}
+.day-chip.today.active {
+  background: #667eea;
+  border-color: #667eea;
+}
+.day-chip.done {
+  background: #e0ffe0;
+}
+
+.section-label {
+  padding: 16px 16px 8px;
+  font-size: 0.85em;
+  color: #999;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 任务卡片 */
+.task-list { padding: 0 12px; }
+.task-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+.task-item:active { transform: scale(0.98); }
+.task-item.completed {
+  border-color: #27ae60;
+  background: #f0fff4;
+}
+.task-item.completed .task-name { color: #27ae60; }
+.task-item.completed .task-points { background: #27ae60; color: white; }
+
+.task-icon {
+  font-size: 1.6em;
+  margin-right: 12px;
+  width: 40px;
+  text-align: center;
+}
+.task-info { flex: 1; }
+.task-name { font-size: 1em; font-weight: 600; color: #333; }
+.task-desc { font-size: 0.8em; color: #999; margin-top: 2px; }
+.task-points {
+  background: #f0f4ff;
+  color: #667eea;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.task-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9em;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.task-item.completed .task-check {
+  background: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+/* 禁用态（当天没有的课） */
+.task-item.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  background: #f9f9f9;
+}
+
+/* 奖励弹窗 */
+.reward-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: white;
+  border-radius: 24px;
+  padding: 30px;
+  text-align: center;
+  z-index: 200;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.reward-toast.show { transform: translate(-50%, -50%) scale(1); }
+.reward-toast .emoji { font-size: 3em; }
+.reward-toast .msg { font-size: 1.2em; font-weight: 700; margin: 10px 0; }
+.reward-toast .pts { color: #667eea; font-size: 2em; font-weight: 800; }
+.reward-toast button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 12px;
+  font-size: 1em;
+  margin-top: 12px;
+  cursor: pointer;
+}
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 199;
+  display: none;
+}
+.overlay.show { display: block; }
+
+/* 奖励里程碑 */
+.milestones {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.milestone {
+  flex-shrink: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: center;
+  min-width: 90px;
+  border: 2px solid #eee;
+}
+.milestone.reached {
+  border-color: #fdcb6e;
+  background: #fffde0;
+}
+.milestone .m-icon { font-size: 1.5em; }
+.milestone .m-pts { font-weight: 700; color: #667eea; font-size: 0.9em; }
+.milestone .m-reward { font-size: 0.8em; color: #666; }
+
+/* 底部 */
+.footer {
+  text-align: center;
+  padding: 8px;
+  color: #bbb;
+  font-size: 0.8em;
+}
+
+/* 完成动画 */
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pop { animation: pop 0.3s ease-out; }
+
+/* 加分配置按钮 */
+.config-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 1.5em;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+  cursor: pointer;
+  z-index: 50;
+}
+</style>
+</head>
+<body>
+
+<div class="score-bar">
+  <div class="score-header">
+    <span class="title">🏖️ 暑假打卡</span>
+    <span class="date" id="currentDate"></span>
+  </div>
+  <div class="score-row">
+    <div class="score-card">
+      <div class="val" id="todayScore">0</div>
+      <div class="label">今日⭐</div>
+    </div>
+    <div class="score-card total">
+      <div class="val" id="weekScore">0</div>
+      <div class="label">本周⭐</div>
+    </div>
+    <div class="score-card total">
+      <div class="val" id="totalScore">0</div>
+      <div class="label">总计⭐</div>
+    </div>
+  </div>
+</div>
+
+<div class="week-nav" id="weekNav"></div>
+
+<div class="section-label">📋 今日任务</div>
+<div class="task-list" id="taskList"></div>
+
+<div class="section-label">🎁 积分兑奖</div>
+<div class="milestones" id="milestones"></div>
+
+<div class="footer">每天进步一点点 💪</div>
+
+<button class="config-btn" onclick="resetWeek()" title="重置本周">🔄</button>
+
+<div class="overlay" id="overlay"></div>
+<div class="reward-toast" id="toast"></div>
+
+<script>
+// ========== 任务定义 ==========
+const TASKS = [
+  { id: 'morning_read', icon: '📖', name: '晨读', desc: '朗读课文/单词 30分钟', pts: 3, days: [1,1,1,1,1,0,0] },
+  { id: 'homework', icon: '✏️', name: '暑假作业', desc: '语数英各完成今日任务', pts: 5, days: [1,1,1,1,1,1,1] },
+  { id: 'chinese', icon: '📚', name: '语文课', desc: '上课+课堂练习', pts: 10, days: [1,0,1,0,1,0,0] },
+  { id: 'vocab', icon: '🔤', name: '背单词', desc: '每天10个新单词', pts: 3, days: [1,1,1,1,1,1,1] },
+  { id: 'dictation', icon: '📝', name: '默写', desc: '生字词/古诗/单词默写', pts: 5, days: [1,1,1,1,1,0,0] },
+  { id: 'reading', icon: '📖', name: '课外阅读', desc: '阅读30分钟以上', pts: 3, days: [1,1,1,1,1,1,1] },
+  { id: 'english', icon: '🇬🇧', name: '英语课', desc: '7月份开始上英语课', pts: 10, days: [1,1,1,1,1,0,0], startMonth: 7 },
+  { id: 'sleep', icon: '🌙', name: '21:00前睡觉', desc: '早睡早起身体好', pts: 2, days: [1,1,1,1,1,1,1] },
+];
+
+const MILESTONES = [
+  { pts: 80, icon: '🍦', reward: '冰淇淋' },
+  { pts: 120, icon: '🎬', reward: '看电影' },
+  { pts: 180, icon: '🎢', reward: '游乐园' },
+  { pts: 250, icon: '🎮', reward: '游戏1小时' },
+  { pts: 350, icon: '🧸', reward: '新玩具' },
+  { pts: 500, icon: '🏆', reward: '超级大奖' },
+];
+
+// ========== 日期工具 ==========
+function getToday() { return new Date(); }
+
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function dayOfWeek(d) { return d.getDay() === 0 ? 6 : d.getDay() - 1; } // Mon=0
+
+// ========== 数据存储 ==========
+const STORAGE_KEY = 'summer_plan_2026';
+
+function loadData() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch(e) { return {}; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ========== 状态管理 ==========
+let currentViewDate = getToday();
+let data = loadData();
+
+function getCompleted(date, taskId) {
+  const key = dateKey(date);
+  return data[key] && data[key][taskId] === true;
+}
+
+function toggleTask(date, taskId) {
+  const key = dateKey(date);
+  if (!data[key]) data[key] = {};
+  data[key][taskId] = !data[key][taskId];
+  saveData(data);
+}
+
+function calcDayScore(date) {
+  const key = dateKey(date);
+  if (!data[key]) return 0;
+  let score = 0;
+  TASKS.forEach(t => {
+    if (data[key][t.id]) {
+      // Check if task is valid for this day
+      const dow = dayOfWeek(date);
+      const month = date.getMonth() + 1;
+      if (t.days[dow] && (!t.startMonth || month >= t.startMonth)) {
+        score += t.pts;
+      }
+    }
+  });
+  return score;
+}
+
+function calcWeekScore(date) {
+  const mon = getMonday(new Date(date));
+  let score = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    score += calcDayScore(d);
+  }
+  return score;
+}
+
+function calcTotalScore() {
+  let total = 0;
+  Object.keys(data).forEach(k => {
+    const [y, m, d] = k.split('-').map(Number);
+    const date = new Date(y, m-1, d);
+    TASKS.forEach(t => {
+      if (data[k][t.id]) {
+        const dow = dayOfWeek(date);
+        const month = date.getMonth() + 1;
+        if (t.days[dow] && (!t.startMonth || month >= t.startMonth)) {
+          total += t.pts;
+        }
+      }
+    });
+  });
+  return total;
+}
+
+// ========== UI渲染 ==========
+function buildWeekNav() {
+  const mon = getMonday(new Date(currentViewDate));
+  const days = ['一','二','三','四','五','六','日'];
+  const today = getToday();
+  
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    const key = dateKey(d);
+    const active = isSameDay(d, currentViewDate);
+    const isToday = isSameDay(d, today);
+    const hasDone = data[key] && Object.values(data[key]).some(v => v);
+    
+    let cls = 'day-chip';
+    if (active) cls += ' active';
+    if (isToday) cls += ' today';
+    if (hasDone && !active) cls += ' done';
+    
+    html += `<div class="${cls}" onclick="selectDate('${key}')">
+      <div class="dow">${days[i]}</div>
+      <div class="dnum">${d.getDate()}</div>
+    </div>`;
+  }
+  document.getElementById('weekNav').innerHTML = html;
+}
+
+function buildTaskList() {
+  const dow = dayOfWeek(currentViewDate);
+  const month = currentViewDate.getMonth() + 1;
+  const isBeforeJuly = month < 7;
+  const key = dateKey(currentViewDate);
+  
+  let html = '';
+  TASKS.forEach(t => {
+    const validDay = t.days[dow] === 1;
+    const validMonth = !t.startMonth || month >= t.startMonth;
+    const completed = data[key] && data[key][t.id];
+    
+    let cls = 'task-item';
+    if (completed) cls += ' completed pop';
+    if (!validDay || !validMonth) cls += ' disabled';
+    
+    let desc = t.desc;
+    if (isBeforeJuly && t.startMonth === 7) desc += '（7月1日开始）';
+    
+    html += `<div class="${cls}" onclick="onTaskClick('${t.id}', this)" data-task="${t.id}">
+      <div class="task-icon">${t.icon}</div>
+      <div class="task-info">
+        <div class="task-name">${completed ? '✅ ' : ''}${t.name}</div>
+        <div class="task-desc">${desc}</div>
+      </div>
+      <div class="task-points">+${t.pts}⭐</div>
+      <div class="task-check">✓</div>
+    </div>`;
+  });
+  
+  document.getElementById('taskList').innerHTML = html;
+}
+
+function buildMilestones() {
+  const total = calcTotalScore();
+  let html = '';
+  MILESTONES.forEach(m => {
+    const reached = total >= m.pts;
+    let cls = 'milestone';
+    if (reached) cls += ' reached';
+    html += `<div class="${cls}">
+      <div class="m-icon">${reached ? m.icon : '🔒'}</div>
+      <div class="m-pts">${m.pts}分</div>
+      <div class="m-reward">${m.reward}</div>
+    </div>`;
+  });
+  document.getElementById('milestones').innerHTML = html;
+}
+
+function updateScores() {
+  const today = getToday();
+  document.getElementById('todayScore').textContent = calcDayScore(today);
+  document.getElementById('weekScore').textContent = calcWeekScore(today);
+  document.getElementById('totalScore').textContent = calcTotalScore();
+  document.getElementById('currentDate').textContent = 
+    `${currentViewDate.getMonth()+1}月${currentViewDate.getDate()}日 周${'日一二三四五六'[currentViewDate.getDay()]}`;
+}
+
+function showToast(task, pts) {
+  const toast = document.getElementById('toast');
+  const overlay = document.getElementById('overlay');
+  toast.innerHTML = `
+    <div class="emoji">${task.icon}</div>
+    <div class="msg">${task.name} 完成！</div>
+    <div class="pts">+${pts} ⭐</div>
+    <button onclick="hideToast()">太棒了！</button>
+  `;
+  toast.classList.add('show');
+  overlay.classList.add('show');
+  setTimeout(hideToast, 2000);
+}
+
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ========== 交互 ==========
+function selectDate(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  currentViewDate = new Date(y, m-1, d);
+  renderAll();
+}
+
+function onTaskClick(taskId, el) {
+  const task = TASKS.find(t => t.id === taskId);
+  const dow = dayOfWeek(currentViewDate);
+  const month = currentViewDate.getMonth() + 1;
+  
+  // 不可用则跳过
+  if (!task.days[dow] || (task.startMonth && month < task.startMonth)) return;
+  
+  toggleTask(currentViewDate, taskId);
+  const completed = getCompleted(currentViewDate, taskId);
+  
+  if (completed) {
+    el.classList.add('completed', 'pop');
+    showToast(task, task.pts);
+  } else {
+    el.classList.remove('completed', 'pop');
+  }
+  
+  updateScores();
+  buildMilestones();
+  buildWeekNav();
+  
+  // 重新渲染当前任务项（更新文字）
+  setTimeout(() => buildTaskList(), 100);
+}
+
+function resetWeek() {
+  if (!confirm('确定要重置本周所有打卡记录吗？')) return;
+  const mon = getMonday(new Date(currentViewDate));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    delete data[dateKey(d)];
+  }
+  saveData(data);
+  renderAll();
+}
+
+// ========== 初始化 ==========
+function renderAll() {
+  buildWeekNav();
+  buildTaskList();
+  buildMilestones();
+  updateScores();
+}
+
+renderAll();
+</script>
+</body>
+</html>
